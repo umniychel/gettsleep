@@ -36,3 +36,5 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+/apps/*/migrations
