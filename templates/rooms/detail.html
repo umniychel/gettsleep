@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Капсула {{ capsule.number }} — GettSleep{% endblock %}
+{% block page_title %}Капсула {{ capsule.number }}{% endblock %}
+{% block topbar_actions %}
+<a href="/rooms/{{ capsule.pk }}/edit/" class="btn btn-secondary btn-sm">Изменить</a>
+{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:300px 1fr;gap:20px">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Информация</span></div>
+    <div>
+      <div class="detail-row"><span class="detail-label">Номер</span><span class="detail-value" style="font-size:24px;font-weight:700">{{ capsule.number }}</span></div>
+      <div class="detail-row"><span class="detail-label">Тип</span><span class="detail-value">{{ capsule.get_capsule_type_display }}</span></div>
+      <div class="detail-row"><span class="detail-label">Этаж</span><span class="detail-value">{{ capsule.floor }}</span></div>
+      <div class="detail-row"><span class="detail-label">Цена</span><span class="detail-value">{{ capsule.price_per_hour }} ₽/час</span></div>
+      <div class="detail-row"><span class="detail-label">Статус</span><span class="badge badge-{{ capsule.get_status_color }}">{{ capsule.get_status_display }}</span></div>
+      {% if capsule.description %}
+      <div class="detail-row"><span class="detail-label">Описание</span><span class="detail-value" style="font-size:14px">{{ capsule.description }}</span></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">История бронирований</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Гость</th><th>Заезд</th><th>Выезд</th><th>Статус</th><th>Сумма</th></tr></thead>
+        <tbody>
+        {% for b in recent_bookings %}
+        <tr>
+          <td><a href="/bookings/{{ b.pk }}/" style="color:var(--accent)">#{{ b.pk }}</a></td>
+          <td>{{ b.guest }}</td>
+          <td>{{ b.check_in|date:"d.m.Y H:i" }}</td>
+          <td>{{ b.check_out|date:"d.m.Y H:i" }}</td>
+          <td><span class="badge badge-{{ b.get_status_color }}">{{ b.get_status_display }}</span></td>
+          <td>{{ b.total_amount }} ₽</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="color:var(--text2);text-align:center;padding:20px">Нет истории</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

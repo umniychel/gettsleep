@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Новая задача уборки — GettSleep{% endblock %}
+{% block page_title %}Создать задачу на уборку{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:560px">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Капсула *</label>
+        <select name="capsule_id" required>
+          <option value="">— выберите —</option>
+          {% for c in capsules %}
+          <option value="{{ c.pk }}">{{ c.number }} — {{ c.get_capsule_type_display }} ({{ c.get_status_display }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Тип уборки</label>
+        <select name="cleaning_type">
+          {% for val, label in cleaning_types %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Приоритет</label>
+        <select name="priority">
+          {% for val, label in priorities %}
+          <option value="{{ val }}" {% if val == 'normal' %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Назначить горничную</label>
+        <select name="assigned_to">
+          <option value="">— не назначена —</option>
+          {% for m in maids %}
+          <option value="{{ m.pk }}">{{ m.get_full_name|default:m.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Примечания</label>
+        <textarea name="notes"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button type="submit" class="btn btn-primary">Создать задачу</button>
+      <a href="/cleaning/" class="btn btn-secondary">Отмена</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

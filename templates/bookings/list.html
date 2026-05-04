@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Бронирования — GettSleep PMS{% endblock %}
+{% block page_title %}Бронирования{% endblock %}
+{% block topbar_actions %}
+<a href="/bookings/create/" class="btn btn-primary btn-sm">+ Новое бронирование</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:20px">
+  <form method="get" class="filter-bar">
+    <input type="text" name="q" placeholder="Поиск гостя, капсулы, документа..." value="{{ search }}" style="min-width:260px">
+    <select name="status" onchange="this.form.submit()">
+      <option value="">Все статусы</option>
+      {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+    {% if current_status or search %}<a href="/bookings/" class="btn btn-secondary btn-sm">Сбросить</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Гость</th><th>Капсула</th><th>Заезд</th><th>Выезд</th>
+          <th>Статус</th><th>Источник</th><th>Сумма</th><th>Оплата</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for b in bookings %}
+      <tr style="cursor:pointer" onclick="location.href='/bookings/{{ b.pk }}/'">
+        <td style="color:var(--accent)">#{{ b.pk }}</td>
+        <td>{{ b.guest }}</td>
+        <td><strong>{{ b.capsule.number }}</strong></td>
+        <td>{{ b.check_in|date:"d.m.Y H:i" }}</td>
+        <td>{{ b.check_out|date:"d.m.Y H:i" }}</td>
+        <td><span class="badge badge-{{ b.get_status_color }}">{{ b.get_status_display }}</span></td>
+        <td style="font-size:12px;color:var(--text2)">{{ b.get_source_display }}</td>
+        <td>{{ b.total_amount }} ₽</td>
+        <td>
+          {% if b.is_paid %}<span class="badge badge-success">Оплачено</span>
+          {% else %}<span class="badge badge-warning">Не оплачено</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" style="color:var(--text2);text-align:center;padding:30px">Бронирований не найдено</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

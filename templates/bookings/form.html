@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Новое бронирование — GettSleep{% endblock %}
+{% block page_title %}Новое бронирование{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div>
+<div class="card" style="margin-bottom:16px">
+  <div class="card-header"><span class="card-title">Гость</span></div>
+  <div id="guest-tabs" style="display:flex;gap:8px;margin-bottom:16px">
+    <button type="button" class="btn btn-primary btn-sm" onclick="showTab('new')">Новый гость</button>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="showTab('existing')">Существующий</button>
+  </div>
+
+  <form method="post" id="booking-form">
+  {% csrf_token %}
+  <input type="hidden" name="guest_id" id="guest_id_input">
+
+  <div id="tab-new">
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Фамилия *</label>
+      <input type="text" name="last_name" id="f-last_name">
+    </div>
+    <div class="form-group">
+      <label>Имя *</label>
+      <input type="text" name="first_name" id="f-first_name">
+    </div>
+    <div class="form-group full">
+      <label>Отчество</label>
+      <input type="text" name="middle_name">
+    </div>
+    <div class="form-group">
+      <label>Документ (паспорт) *</label>
+      <input type="text" name="passport_number" id="f-passport">
+    </div>
+    <div class="form-group">
+      <label>Телефон</label>
+      <input type="text" name="phone">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" name="email">
+    </div>
+    <div class="form-group">
+      <label>Гражданство</label>
+      <input type="text" name="nationality" value="Россия">
+    </div>
+  </div>
+  </div>
+
+  <div id="tab-existing" style="display:none">
+    <div class="form-group">
+      <label>Выберите гостя</label>
+      <select onchange="selectGuest(this)">
+        <option value="">— выберите —</option>
+        {% for g in guests %}
+        <option value="{{ g.pk }}" data-passport="{{ g.passport_number }}">{{ g.get_full_name }} ({{ g.passport_number }})</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Дополнительные услуги</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <label class="checkbox-group"><input type="checkbox" name="has_towel"> Полотенце (+150 ₽)</label>
+    <label class="checkbox-group"><input type="checkbox" name="has_slippers"> Тапочки (+100 ₽)</label>
+    <label class="checkbox-group"><input type="checkbox" name="has_hygiene"> Гигиенический набор (+200 ₽)</label>
+    <label class="checkbox-group"><input type="checkbox" name="has_meal"> Питание (+350 ₽)</label>
+  </div>
+  <div class="form-group" style="margin-top:14px">
+    <label>Примечания</label>
+    <textarea name="notes"></textarea>
+  </div>
+</div>
+</div>
+
+<div>
+<div class="card" style="margin-bottom:16px">
+  <div class="card-header"><span class="card-title">Капсула и даты</span></div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="form-group">
+      <label>Капсула *</label>
+      <select name="capsule_id" id="capsule-select" onchange="calcTotal()">
+        <option value="">— выберите —</option>
+        {% for c in free_capsules %}
+        <option value="{{ c.pk }}" data-price="{{ c.price_per_hour }}">{{ c.number }} — {{ c.get_capsule_type_display }} ({{ c.price_per_hour }} ₽/ч)</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Дата и время заезда *</label>
+      <input type="datetime-local" name="check_in" id="check_in" onchange="calcTotal()" required>
+    </div>
+    <div class="form-group">
+      <label>Дата и время выезда *</label>
+      <input type="datetime-local" name="check_out" id="check_out" onchange="calcTotal()" required>
+    </div>
+    <div class="form-group">
+      <label>Источник</label>
+      <select name="source">
+        {% for val, label in sources %}
+        <option value="{{ val }}" {% if val == 'reception' %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Способ оплаты</label>
+      <select name="payment_method">
+        {% for val, label in payment_methods %}
+        <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <div class="card-title" style="margin-bottom:10px">Расчёт стоимости</div>
+  <div id="total-display" style="font-size:28px;font-weight:700;color:var(--accent)">0 ₽</div>
+  <div id="total-detail" style="font-size:13px;color:var(--text2);margin-top:4px"></div>
+</div>
+
+<div style="display:flex;gap:10px">
+  <button type="submit" form="booking-form" class="btn btn-primary">Создать бронирование</button>
+  <a href="/bookings/" class="btn btn-secondary">Отмена</a>
+</div>
+</div>
+</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(t) {
+  document.getElementById('tab-new').style.display = t === 'new' ? '' : 'none';
+  document.getElementById('tab-existing').style.display = t === 'existing' ? '' : 'none';
+  document.getElementById('guest_id_input').value = '';
+  const req = t === 'new';
+  document.getElementById('f-last_name').required = req;
+  document.getElementById('f-first_name').required = req;
+  document.getElementById('f-passport').required = req;
+}
+
+function selectGuest(sel) {
+  document.getElementById('guest_id_input').value = sel.value;
+}
+
+function calcTotal() {
+  const sel = document.getElementById('capsule-select');
+  const price = parseFloat(sel.options[sel.selectedIndex]?.dataset.price || 0);
+  const ci = document.getElementById('check_in').value;
+  const co = document.getElementById('check_out').value;
+  if (!ci || !co || !price) { document.getElementById('total-display').textContent = '0 ₽'; return; }
+  const hours = Math.max(1, Math.round((new Date(co) - new Date(ci)) / 3600000));
+  let extras = 0;
+  document.querySelectorAll('input[type=checkbox]:checked').forEach(c => {
+    const map = {has_towel: 150, has_slippers: 100, has_hygiene: 200, has_meal: 350};
+    extras += map[c.name] || 0;
+  });
+  const base = price * hours;
+  const total = base + extras;
+  document.getElementById('total-display').textContent = total + ' ₽';
+  document.getElementById('total-detail').textContent = `Капсула: ${base} ₽ (${hours} ч × ${price} ₽) + Услуги: ${extras} ₽`;
+}
+
+// Set default check-in to now
+const now = new Date();
+now.setMinutes(0, 0, 0);
+document.getElementById('check_in').value = now.toISOString().slice(0,16);
+const later = new Date(now.getTime() + 8*3600000);
+document.getElementById('check_out').value = later.toISOString().slice(0,16);
+
+document.querySelectorAll('input[type=checkbox]').forEach(c => c.addEventListener('change', calcTotal));
+</script>
+{% endblock %}

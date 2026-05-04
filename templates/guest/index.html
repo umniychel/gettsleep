@@ -1,0 +1,216 @@
+{% extends "guest/base_public.html" %}
+{% block title %}GettSleep — Хостел в аэропорту{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero { padding: 80px 0 60px; text-align: center; }
+.hero h1 { font-size: 52px; font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+.hero h1 span { color: var(--accent); }
+.hero p { font-size: 18px; color: var(--text2); max-width: 560px; margin: 0 auto 36px; }
+.hero-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 36px; }
+.hero-badge { background: var(--surface); border: 1px solid var(--border); border-radius: 30px; padding: 8px 18px; font-size: 14px; color: var(--text2); }
+.hero-badge span { color: var(--accent); font-weight: 600; }
+.hero-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+.search-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 760px; margin: 0 auto 60px; }
+.search-bar h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text2); }
+.search-fields { display: grid; grid-template-columns: 1fr 1fr 180px auto; gap: 12px; align-items: end; }
+.search-fields label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; }
+.search-fields input, .search-fields select {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 14px; color: var(--text); font-size: 14px; width: 100%; outline: none;
+}
+.search-fields input:focus, .search-fields select:focus { border-color: var(--accent); }
+
+.capsule-types { padding: 40px 0 60px; }
+.section-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+.section-sub { color: var(--text2); margin-bottom: 32px; }
+.types-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.type-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: border-color .2s, transform .2s; }
+.type-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.type-icon { font-size: 40px; margin-bottom: 16px; }
+.type-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.type-desc { color: var(--text2); font-size: 14px; margin-bottom: 16px; line-height: 1.5; }
+.type-price { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 20px; }
+.type-price small { font-size: 13px; color: var(--text2); font-weight: 400; }
+.type-features { list-style: none; margin-bottom: 24px; }
+.type-features li { font-size: 13px; color: var(--text2); padding: 4px 0; }
+.type-features li::before { content: '✓ '; color: var(--success); }
+
+.how-it-works { padding: 40px 0 60px; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 32px; }
+.step { text-align: center; padding: 24px; }
+.step-num { width: 48px; height: 48px; border-radius: 50%; background: rgba(79,110,247,.15); border: 2px solid var(--accent); color: var(--accent); font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.step h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.step p { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+.amenities { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 48px 0; margin-bottom: 60px; }
+.amenities-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 32px; }
+.amenity { text-align: center; }
+.amenity .icon { font-size: 32px; margin-bottom: 10px; }
+.amenity h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.amenity p { font-size: 12px; color: var(--text2); }
+
+@media (max-width: 900px) {
+  .types-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr 1fr; }
+  .amenities-grid { grid-template-columns: 1fr 1fr; }
+  .search-fields { grid-template-columns: 1fr 1fr; }
+  .hero h1 { font-size: 36px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <h1>Отдых в аэропорту —<br><span>быстро и комфортно</span></h1>
+    <p>Капсульный хостел прямо в транзитной зоне. Бронируйте на несколько часов и восстанавливайте силы перед следующим рейсом.</p>
+    <div class="hero-badges">
+      <div class="hero-badge">✈ Транзитная зона</div>
+      <div class="hero-badge">🕐 Работаем <span>24/7</span></div>
+      <div class="hero-badge">🛏 <span>{{ capsule_counts.single|add:capsule_counts.double|add:capsule_counts.family }}</span> капсул</div>
+      <div class="hero-badge">🟢 Свободно <span>{{ free_count }}</span> мест</div>
+    </div>
+    <div class="hero-actions">
+      <a href="/guest/rooms/" class="btn btn-primary btn-lg">Выбрать капсулу</a>
+      <a href="/guest/register/" class="btn btn-secondary btn-lg">Зарегистрироваться</a>
+    </div>
+  </div>
+
+  <!-- Быстрый поиск -->
+  <div class="search-bar">
+    <h3>🔍 Быстрый поиск доступных капсул</h3>
+    <form action="/guest/rooms/" method="get">
+      <div class="search-fields">
+        <div>
+          <label>Дата и время заезда</label>
+          <input type="datetime-local" name="check_in" id="si-checkin">
+        </div>
+        <div>
+          <label>Дата и время выезда</label>
+          <input type="datetime-local" name="check_out" id="si-checkout">
+        </div>
+        <div>
+          <label>Тип капсулы</label>
+          <select name="capsule_type">
+            <option value="">Любой</option>
+            <option value="single">Одноместная</option>
+            <option value="double">Двухместная</option>
+            <option value="family">Семейная</option>
+          </select>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary" style="width:100%">Найти</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Типы капсул -->
+<div class="container">
+  <div class="capsule-types">
+    <div class="section-title">Виды капсул</div>
+    <div class="section-sub">Выберите подходящий вариант для отдыха</div>
+    <div class="types-grid">
+      <div class="type-card">
+        <div class="type-icon">🛏</div>
+        <div class="type-name">Одноместная</div>
+        <div class="type-desc">Уютная капсула для индивидуального отдыха. Полная приватность и тишина.</div>
+        <div class="type-price">от {{ prices.single }} ₽ <small>/час</small></div>
+        <ul class="type-features">
+          <li>Индивидуальное освещение</li>
+          <li>Розетка и USB-зарядка</li>
+          <li>Матрас с постельным бельём</li>
+          <li>Шторка для приватности</li>
+        </ul>
+        <a href="/guest/rooms/?capsule_type=single" class="btn btn-primary" style="width:100%">Выбрать</a>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">👫</div>
+        <div class="type-name">Двухместная</div>
+        <div class="type-desc">Просторная капсула для двух человек. Идеально для путешествующих пар.</div>
+        <div class="type-price">от {{ prices.double }} ₽ <small>/час</small></div>
+        <ul class="type-features">
+          <li>Двуспальный или раздельный</li>
+          <li>Двойная зарядка</li>
+          <li>Увеличенное пространство</li>
+          <li>Совместная шторка</li>
+        </ul>
+        <a href="/guest/rooms/?capsule_type=double" class="btn btn-primary" style="width:100%">Выбрать</a>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">👨‍👩‍👧</div>
+        <div class="type-name">Семейная</div>
+        <div class="type-desc">Большая капсула для семьи с детьми. Максимальный комфорт для всей семьи.</div>
+        <div class="type-price">от {{ prices.family }} ₽ <small>/час</small></div>
+        <ul class="type-features">
+          <li>До 4 спальных мест</li>
+          <li>Дополнительное пространство</li>
+          <li>Безопасность для детей</li>
+          <li>Семейный сервис</li>
+        </ul>
+        <a href="/guest/rooms/?capsule_type=family" class="btn btn-primary" style="width:100%">Выбрать</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Как это работает -->
+  <div class="how-it-works">
+    <div class="section-title">Как забронировать</div>
+    <div class="section-sub">Всего 4 простых шага</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Зарегистрируйтесь</h4>
+        <p>Создайте аккаунт на сайте — это займёт меньше минуты</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Выберите капсулу</h4>
+        <p>Укажите даты заезда и выезда, выберите подходящую капсулу</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Оформите бронь</h4>
+        <p>Подтвердите бронирование и получите его номер</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h4>Приезжайте!</h4>
+        <p>Назовите номер брони на стойке регистрации и отдыхайте</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Удобства -->
+<div class="amenities">
+  <div class="container">
+    <div class="section-title">Удобства хостела</div>
+    <div class="section-sub">Всё необходимое для комфортного отдыха</div>
+    <div class="amenities-grid">
+      <div class="amenity"><div class="icon">🚿</div><h4>Душевые кабины</h4><p>Чистые душевые, открытые 24/7</p></div>
+      <div class="amenity"><div class="icon">🍽</div><h4>Кафе и снеки</h4><p>Питание и напитки рядом</p></div>
+      <div class="amenity"><div class="icon">📶</div><h4>Wi-Fi 100 Мбит/с</h4><p>Бесплатный быстрый интернет</p></div>
+      <div class="amenity"><div class="icon">🔒</div><h4>Безопасность</h4><p>Контроль доступа 24/7</p></div>
+      <div class="amenity"><div class="icon">🧳</div><h4>Хранение багажа</h4><p>Камеры хранения при стойке</p></div>
+      <div class="amenity"><div class="icon">🌡</div><h4>Климат-контроль</h4><p>Комфортная температура всегда</p></div>
+      <div class="amenity"><div class="icon">👕</div><h4>Постельное бельё</h4><p>Свежее бельё для каждого гостя</p></div>
+      <div class="amenity"><div class="icon">🛎</div><h4>Ресепшен 24/7</h4><p>Всегда готовы помочь</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const now = new Date();
+now.setMinutes(0,0,0);
+document.getElementById('si-checkin').value = now.toISOString().slice(0,16);
+const later = new Date(now.getTime() + 8*3600000);
+document.getElementById('si-checkout').value = later.toISOString().slice(0,16);
+</script>
+{% endblock %}

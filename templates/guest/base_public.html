@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}GettSleep — Хостел в аэропорту{% endblock %}</title>
+<style>
+:root {
+  --bg: #0a0d14;
+  --surface: #111520;
+  --surface2: #181d2e;
+  --border: #242a42;
+  --accent: #4f6ef7;
+  --accent-hover: #3d5ce8;
+  --text: #e8eaf0;
+  --text2: #8b90a8;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* NAV */
+nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; }
+.nav-logo { font-size: 22px; font-weight: 800; color: var(--accent); text-decoration: none; letter-spacing: -0.5px; }
+.nav-logo span { color: var(--text2); font-weight: 400; font-size: 14px; margin-left: 8px; }
+.nav-links { display: flex; align-items: center; gap: 8px; }
+.nav-link { padding: 8px 14px; color: var(--text2); text-decoration: none; font-size: 14px; border-radius: 8px; transition: all .15s; }
+.nav-link:hover { color: var(--text); background: var(--surface2); }
+.nav-link.active { color: var(--accent); }
+.btn-nav { padding: 8px 18px; background: var(--accent); color: #fff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; transition: background .15s; }
+.btn-nav:hover { background: var(--accent-hover); }
+.btn-nav-outline { padding: 8px 18px; border: 1px solid var(--border); color: var(--text); border-radius: 8px; text-decoration: none; font-size: 14px; transition: all .15s; }
+.btn-nav-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+/* MAIN */
+main { min-height: calc(100vh - 64px); }
+
+/* CONTAINER */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; border-radius: 10px; border: none; cursor: pointer; font-size: 15px; font-weight: 600; text-decoration: none; transition: all .15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { opacity: .9; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-lg { padding: 14px 32px; font-size: 16px; }
+
+/* CARDS */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+
+/* FORMS */
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+.form-group input, .form-group select, .form-group textarea {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; color: var(--text); font-size: 14px; width: 100%; outline: none; transition: border-color .15s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ALERTS */
+.alert { padding: 13px 18px; border-radius: 10px; margin-bottom: 18px; font-size: 14px; }
+.alert-success { background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.3); color: var(--success); }
+.alert-error { background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.3); color: var(--danger); }
+.alert-warning { background: rgba(243,156,18,.12); border: 1px solid rgba(243,156,18,.3); color: var(--warning); }
+.alert-info { background: rgba(79,110,247,.12); border: 1px solid rgba(79,110,247,.3); color: var(--accent); }
+
+/* BADGES */
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-success { background: rgba(46,204,113,.15); color: var(--success); }
+.badge-warning { background: rgba(243,156,18,.15); color: var(--warning); }
+.badge-danger { background: rgba(231,76,60,.15); color: var(--danger); }
+.badge-info { background: rgba(52,152,219,.15); color: #3498db; }
+.badge-secondary { background: rgba(139,144,168,.15); color: var(--text2); }
+.badge-primary { background: rgba(79,110,247,.15); color: var(--accent); }
+
+/* FOOTER */
+footer { background: var(--surface); border-top: 1px solid var(--border); padding: 28px 40px; text-align: center; color: var(--text2); font-size: 13px; }
+
+/* PAGE HEADER */
+.page-header { padding: 48px 0 32px; }
+.page-header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.page-header p { color: var(--text2); font-size: 16px; }
+
+@media (max-width: 700px) {
+  nav { padding: 0 16px; }
+  .nav-logo span { display: none; }
+  .form-row { grid-template-columns: 1fr; }
+  .container { padding: 0 16px; }
+}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">GettSleep <span>Airport Hostel</span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link {% block nav_home %}{% endblock %}">Главная</a>
+    <a href="/guest/rooms/" class="nav-link {% block nav_rooms %}{% endblock %}">Капсулы</a>
+    {% if user.is_authenticated and not user.is_staff %}
+      <a href="/guest/cabinet/" class="nav-link {% block nav_cabinet %}{% endblock %}">Мои бронирования</a>
+      <a href="/guest/logout/" class="btn-nav-outline">Выйти</a>
+    {% elif user.is_authenticated and user.is_staff %}
+      <a href="/dashboard/" class="nav-link">Панель управления</a>
+      <a href="/staff/logout/" class="btn-nav-outline">Выйти</a>
+    {% else %}
+      <a href="/guest/login/" class="btn-nav-outline">Войти</a>
+      <a href="/guest/register/" class="btn-nav">Зарегистрироваться</a>
+    {% endif %}
+  </div>
+</nav>
+
+<main>
+{% if messages %}
+<div class="container" style="padding-top:20px">
+  {% for msg in messages %}
+  <div class="alert alert-{% if msg.tags == 'error' %}error{% elif msg.tags == 'success' %}success{% elif msg.tags == 'warning' %}warning{% else %}info{% endif %}">{{ msg }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+
+<footer>
+  <p>© 2025 GettSleep — Хостел капсульного типа в транзитной зоне аэропорта</p>
+  <p style="margin-top:6px">Работаем 24/7 · Стойка регистрации: +7 (495) 000-00-00</p>
+</footer>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

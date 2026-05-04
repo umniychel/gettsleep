@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Отчёты — GettSleep PMS{% endblock %}
+{% block page_title %}Аналитика и отчёты{% endblock %}
+
+{% block content %}
+<div class="stats-grid" style="margin-bottom:24px">
+  <div class="stat-card">
+    <div class="stat-label">Выручка за месяц</div>
+    <div class="stat-value accent">{{ month_revenue|floatformat:0 }} ₽</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Бронирований за месяц</div>
+    <div class="stat-value success">{{ month_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Выручка сегодня</div>
+    <div class="stat-value warning">{{ today_revenue|floatformat:0 }} ₽</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Загрузка сейчас</div>
+    <div class="stat-value danger">{{ occupancy_rate }}%</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px">{{ occupied }} из {{ total_capsules }} капсул</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Выручка за последние 14 дней</span></div>
+    <canvas id="revenueChart" height="80"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Источники бронирований (месяц)</span></div>
+    {% for s in sources %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:14px">{{ s.source }}</span>
+      <span class="badge badge-primary">{{ s.count }}</span>
+    </div>
+    {% empty %}
+    <div style="color:var(--text2);font-size:14px;padding:20px 0;text-align:center">Нет данных</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Журнал аудита</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Время</th><th>Пользователь</th><th>Действие</th><th>Раздел</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for log in audit_logs %}
+      <tr>
+        <td style="font-size:12px;color:var(--text2)">{{ log.created_at|date:"d.m.Y H:i" }}</td>
+        <td>{{ log.user.get_full_name|default:log.user.username|default:"—" }}</td>
+        <td style="font-size:13px">{{ log.action }}</td>
+        <td style="font-size:12px;color:var(--text2)">{{ log.model_name }}</td>
+        <td style="font-size:12px;color:var(--text2)">{{ log.ip_address|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="color:var(--text2);text-align:center;padding:20px">Журнал пуст</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const days = {{ days_json|safe }};
+const revenues = {{ revenues_json|safe }};
+const ctx = document.getElementById('revenueChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: days,
+    datasets: [{
+      label: 'Выручка (₽)',
+      data: revenues,
+      backgroundColor: 'rgba(79,110,247,0.6)',
+      borderColor: 'rgba(79,110,247,1)',
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#e8eaf0' } }
+    },
+    scales: {
+      x: { ticks: { color: '#8b90a8' }, grid: { color: '#2e3350' } },
+      y: { ticks: { color: '#8b90a8' }, grid: { color: '#2e3350' } }
+    }
+  }
+});
+</script>
+{% endblock %}

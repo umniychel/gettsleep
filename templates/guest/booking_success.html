@@ -1,0 +1,44 @@
+{% extends "guest/base_public.html" %}
+{% block title %}Бронирование оформлено — GettSleep{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:560px;padding-top:60px;padding-bottom:60px;text-align:center">
+  <div style="font-size:64px;margin-bottom:20px">✅</div>
+  <h1 style="font-size:28px;font-weight:700;margin-bottom:10px">Бронирование оформлено!</h1>
+  <p style="color:var(--text2);font-size:16px;margin-bottom:32px">Ваше бронирование успешно создано. Ждём вас в хостеле!</p>
+
+  <div class="card" style="text-align:left;margin-bottom:28px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+      <div style="padding:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text2)">Номер брони</div>
+        <div style="font-size:24px;font-weight:800;color:var(--accent)">#{{ booking.pk }}</div>
+      </div>
+      <div style="padding:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text2)">Капсула</div>
+        <div style="font-size:22px;font-weight:700">{{ booking.capsule.number }}</div>
+      </div>
+      <div style="padding:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text2)">Заезд</div>
+        <div style="font-size:15px;font-weight:600">{{ booking.check_in|date:"d.m.Y H:i" }}</div>
+      </div>
+      <div style="padding:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text2)">Выезд</div>
+        <div style="font-size:15px;font-weight:600">{{ booking.check_out|date:"d.m.Y H:i" }}</div>
+      </div>
+      <div style="padding:14px;grid-column:1/-1">
+        <div style="font-size:12px;color:var(--text2)">Сумма</div>
+        <div style="font-size:26px;font-weight:800;color:var(--accent)">{{ booking.total_amount }} ₽</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="text-align:left;margin-bottom:28px">
+    <strong>Как заселиться:</strong> назовите номер брони <strong>#{{ booking.pk }}</strong> на стойке регистрации. Администратор оформит заезд.
+  </div>
+
+  <div style="display:flex;gap:12px;justify-content:center">
+    <a href="/guest/cabinet/" class="btn btn-primary">Мои бронирования</a>
+    <a href="/guest/rooms/" class="btn btn-secondary">Ещё капсулы</a>
+  </div>
+</div>
+{% endblock %}

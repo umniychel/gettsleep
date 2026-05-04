@@ -1,0 +1,423 @@
+{% extends "guest/base_public.html" %}
+{% block title %}Капсулы — GettSleep{% endblock %}
+{% block nav_rooms %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Карточки капсул ── */
+.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.room-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color .2s, transform .2s; }
+.room-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.room-card-body { padding: 22px; }
+.room-num { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+.room-type { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+.room-price { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.room-status-bar { padding: 12px 22px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+
+/* ── Панель поиска ── */
+.filter-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 28px; }
+.filter-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 18px; color: var(--text2); }
+.filter-grid { display: grid; grid-template-columns: 1fr 1fr 180px auto; gap: 14px; align-items: end; }
+@media(max-width:700px){ .filter-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ── Кастомный пикер дат ── */
+.dt-picker-wrap { position: relative; }
+.dt-picker-wrap label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 6px; font-weight: 500; }
+.dt-display {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; color: var(--text); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  transition: border-color .15s; user-select: none;
+}
+.dt-display:hover, .dt-display.open { border-color: var(--accent); }
+.dt-display .placeholder { color: var(--text2); }
+.dt-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+  background: #1e2235; border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5); padding: 20px;
+  width: 320px; display: none;
+}
+.dt-dropdown.open { display: block; }
+.dt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.dt-month-label { font-size: 15px; font-weight: 700; }
+.dt-nav { background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); cursor: pointer; padding: 5px 10px; font-size: 14px; }
+.dt-nav:hover { background: var(--surface2); }
+.dt-weekdays { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; margin-bottom: 6px; }
+.dt-weekday { text-align: center; font-size: 11px; color: var(--text2); padding: 4px 0; }
+.dt-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-bottom: 16px; }
+.dt-day {
+  text-align: center; padding: 7px 3px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; transition: background .1s;
+}
+.dt-day:hover { background: var(--surface2); }
+.dt-day.today { border: 1px solid var(--accent); color: var(--accent); }
+.dt-day.selected { background: var(--accent); color: #fff; font-weight: 700; }
+.dt-day.in-range { background: rgba(79,110,247,.2); }
+.dt-day.other-month { color: var(--text2); opacity: .4; }
+.dt-day.disabled { opacity: .25; cursor: default; pointer-events: none; }
+.dt-time { display: flex; align-items: center; gap: 10px; }
+.dt-time label { font-size: 12px; color: var(--text2); white-space: nowrap; }
+.dt-time select {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; color: var(--text); font-size: 14px; flex: 1;
+}
+.dt-apply {
+  width: 100%; margin-top: 16px; background: var(--accent); color: #fff;
+  border: none; border-radius: 10px; padding: 10px; font-size: 14px;
+  font-weight: 600; cursor: pointer;
+}
+.dt-apply:hover { background: #3d5ce8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>Доступные капсулы</h1>
+    <p>Выберите капсулу и забронируйте онлайн</p>
+  </div>
+
+  <!-- Панель поиска -->
+  <div class="filter-card">
+    <h3>🔍 Найти свободные капсулы</h3>
+    <form method="get" id="search-form">
+      <div class="filter-grid">
+
+        <!-- Пикер: заезд -->
+        <div class="dt-picker-wrap" id="picker-checkin">
+          <label>📅 Дата и время заезда</label>
+          <div class="dt-display" id="display-checkin" onclick="togglePicker('checkin')">
+            <span id="label-checkin" class="placeholder">Выберите дату</span>
+            <span>▾</span>
+          </div>
+          <input type="hidden" name="check_in" id="val-checkin" value="{{ check_in }}">
+          <div class="dt-dropdown" id="drop-checkin">
+            <div class="dt-head">
+              <button type="button" class="dt-nav" onclick="changeMonth('checkin',-1)">‹</button>
+              <span class="dt-month-label" id="month-checkin"></span>
+              <button type="button" class="dt-nav" onclick="changeMonth('checkin',1)">›</button>
+            </div>
+            <div class="dt-weekdays"><span class="dt-weekday">Пн</span><span class="dt-weekday">Вт</span><span class="dt-weekday">Ср</span><span class="dt-weekday">Чт</span><span class="dt-weekday">Пт</span><span class="dt-weekday">Сб</span><span class="dt-weekday">Вс</span></div>
+            <div class="dt-days" id="days-checkin"></div>
+            <div class="dt-time">
+              <label>Время:</label>
+              <select id="hour-checkin" onchange="updateDisplay('checkin')">
+                <option value="00">00:00</option>
+                <option value="01">01:00</option>
+                <option value="02">02:00</option>
+                <option value="03">03:00</option>
+                <option value="04">04:00</option>
+                <option value="05">05:00</option>
+                <option value="06">06:00</option>
+                <option value="07">07:00</option>
+                <option value="08">08:00</option>
+                <option value="09">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="12">12:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+                <option value="18">18:00</option>
+                <option value="19">19:00</option>
+                <option value="20">20:00</option>
+                <option value="21">21:00</option>
+                <option value="22">22:00</option>
+                <option value="23">23:00</option>
+              </select>
+            </div>
+            <button type="button" class="dt-apply" onclick="applyPicker('checkin')">Применить</button>
+          </div>
+        </div>
+
+        <!-- Пикер: выезд -->
+        <div class="dt-picker-wrap" id="picker-checkout">
+          <label>📅 Дата и время выезда</label>
+          <div class="dt-display" id="display-checkout" onclick="togglePicker('checkout')">
+            <span id="label-checkout" class="placeholder">Выберите дату</span>
+            <span>▾</span>
+          </div>
+          <input type="hidden" name="check_out" id="val-checkout" value="{{ check_out }}">
+          <div class="dt-dropdown" id="drop-checkout">
+            <div class="dt-head">
+              <button type="button" class="dt-nav" onclick="changeMonth('checkout',-1)">‹</button>
+              <span class="dt-month-label" id="month-checkout"></span>
+              <button type="button" class="dt-nav" onclick="changeMonth('checkout',1)">›</button>
+            </div>
+            <div class="dt-weekdays"><span class="dt-weekday">Пн</span><span class="dt-weekday">Вт</span><span class="dt-weekday">Ср</span><span class="dt-weekday">Чт</span><span class="dt-weekday">Пт</span><span class="dt-weekday">Сб</span><span class="dt-weekday">Вс</span></div>
+            <div class="dt-days" id="days-checkout"></div>
+            <div class="dt-time">
+              <label>Время:</label>
+              <select id="hour-checkout" onchange="updateDisplay('checkout')">
+                <option value="00">00:00</option>
+                <option value="01">01:00</option>
+                <option value="02">02:00</option>
+                <option value="03">03:00</option>
+                <option value="04">04:00</option>
+                <option value="05">05:00</option>
+                <option value="06">06:00</option>
+                <option value="07">07:00</option>
+                <option value="08">08:00</option>
+                <option value="09">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="12">12:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+                <option value="18">18:00</option>
+                <option value="19">19:00</option>
+                <option value="20">20:00</option>
+                <option value="21">21:00</option>
+                <option value="22">22:00</option>
+                <option value="23">23:00</option>
+              </select>
+            </div>
+            <button type="button" class="dt-apply" onclick="applyPicker('checkout')">Применить</button>
+          </div>
+        </div>
+
+        <!-- Тип -->
+        <div>
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;font-weight:500">Тип капсулы</label>
+          <select name="capsule_type" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;width:100%">
+            <option value="">Любой</option>
+            {% for val, label in capsule_types %}
+            <option value="{{ val }}" {% if capsule_type == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Кнопка поиска -->
+        <div>
+          <button type="submit" class="btn btn-primary" style="width:100%;padding:10px 0;font-size:15px">Найти</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if search_performed %}
+  <div class="alert alert-info" style="margin-bottom:20px">
+    Показаны результаты поиска. Капсулы без кнопки «Забронировать» уже заняты на выбранное время.
+  </div>
+  {% endif %}
+
+  <!-- Сетка капсул -->
+  <div class="rooms-grid">
+    {% for c in capsules %}
+    <div class="room-card">
+      <div class="room-card-body">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
+          <div class="room-num">{{ c.number }}</div>
+          <span style="font-size:11px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px">{{ c.get_capsule_type_display }}</span>
+        </div>
+        <div class="room-type">{{ c.floor }} этаж</div>
+        <div class="room-price">{{ c.price_per_hour }} ₽ <small style="font-size:13px;color:var(--text2);font-weight:400">/час</small></div>
+        {% if c.description %}
+        <div style="font-size:13px;color:var(--text2)">{{ c.description }}</div>
+        {% endif %}
+      </div>
+      <div class="room-status-bar">
+        {% if c.computed_status == 'free' %}
+          <span class="badge badge-success">✓ Свободна</span>
+          {% if user.is_authenticated and not user.is_staff %}
+            <a href="/guest/rooms/{{ c.pk }}/book/?check_in={{ check_in }}&check_out={{ check_out }}" class="btn btn-primary btn-sm">Забронировать</a>
+          {% else %}
+            <a href="/guest/login/?next=/guest/rooms/{{ c.pk }}/book/" class="btn btn-secondary btn-sm">Войти для брони</a>
+          {% endif %}
+        {% elif c.computed_status == 'booked' %}
+          <span class="badge badge-warning">Забронирована</span>
+          <span style="font-size:12px;color:var(--text2)">Занята в этот период</span>
+        {% elif c.computed_status == 'occupied' %}
+          <span class="badge badge-danger">Занята</span>
+          <span style="font-size:12px;color:var(--text2)">Гость заселён</span>
+        {% elif c.computed_status == 'cleaning' %}
+          <span class="badge badge-info">На уборке</span>
+          <span style="font-size:12px;color:var(--text2)">Скоро освободится</span>
+        {% else %}
+          <span class="badge badge-success">✓ Свободна</span>
+          {% if user.is_authenticated and not user.is_staff %}
+            <a href="/guest/rooms/{{ c.pk }}/book/?check_in={{ check_in }}&check_out={{ check_out }}" class="btn btn-primary btn-sm">Забронировать</a>
+          {% else %}
+            <a href="/guest/login/?next=/guest/rooms/{{ c.pk }}/book/" class="btn btn-secondary btn-sm">Войти для брони</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2)">
+      <div style="font-size:40px;margin-bottom:16px">🔍</div>
+      <div style="font-size:18px;margin-bottom:8px">Капсулы не найдены</div>
+      <div>Попробуйте изменить даты или тип капсулы</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Закрыть дропдаун по клику вне -->
+<script>
+document.addEventListener('click', function(e) {
+  ['checkin','checkout'].forEach(id => {
+    const wrap = document.getElementById('picker-' + id);
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('drop-' + id).classList.remove('open');
+      document.getElementById('display-' + id).classList.remove('open');
+    }
+  });
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Состояние пикеров ─────────────────────────────────────────────
+const state = {
+  checkin:  { year: null, month: null, day: null, hour: 14 },
+  checkout: { year: null, month: null, day: null, hour: 12 },
+};
+
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function isoStr(s){
+  if(!s.day) return '';
+  return `${s.year}-${pad(s.month+1)}-${pad(s.day)}T${pad(s.hour)}:00`;
+}
+
+function formatLabel(s){
+  if(!s.day) return null;
+  return `${pad(s.day)}.${pad(s.month+1)}.${s.year}, ${pad(s.hour)}:00`;
+}
+
+function renderCalendar(id){
+  const s = state[id];
+  const now = new Date();
+  const year = s.year || now.getFullYear();
+  const month = s.month !== null ? s.month : now.getMonth();
+
+  document.getElementById('month-' + id).textContent = `${MONTHS[month]} ${year}`;
+
+  // Часовой select
+  const sel = document.getElementById('hour-' + id);
+  sel.value = pad(s.hour);
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0=вс
+  const shift = (firstDay + 6) % 7; // пн=0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const container = document.getElementById('days-' + id);
+  container.innerHTML = '';
+
+  // Пустые ячейки
+  for(let i = 0; i < shift; i++){
+    const blank = document.createElement('div');
+    blank.className = 'dt-day other-month';
+    container.appendChild(blank);
+  }
+
+  const today = new Date();
+  for(let d = 1; d <= daysInMonth; d++){
+    const cell = document.createElement('div');
+    cell.className = 'dt-day';
+    cell.textContent = d;
+
+    const cellDate = new Date(year, month, d);
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if(cellDate < todayDate) cell.classList.add('disabled');
+    if(cellDate.toDateString() === todayDate.toDateString()) cell.classList.add('today');
+    if(s.day === d && s.year === year && s.month === month) cell.classList.add('selected');
+
+    cell.addEventListener('click', () => {
+      s.year = year; s.month = month; s.day = d;
+      renderCalendar(id);
+      updateDisplay(id);
+    });
+    container.appendChild(cell);
+  }
+}
+
+function updateDisplay(id){
+  const s = state[id];
+  // Считываем час из select
+  const sel = document.getElementById('hour-' + id);
+  if(sel) s.hour = parseInt(sel.value);
+
+  const label = formatLabel(s);
+  const el = document.getElementById('label-' + id);
+  if(label){
+    el.textContent = label;
+    el.classList.remove('placeholder');
+  }
+  // Скрытый input
+  document.getElementById('val-' + id).value = isoStr(s);
+}
+
+function applyPicker(id){
+  updateDisplay(id);
+  document.getElementById('drop-' + id).classList.remove('open');
+  document.getElementById('display-' + id).classList.remove('open');
+}
+
+function togglePicker(id){
+  const drop = document.getElementById('drop-' + id);
+  const disp = document.getElementById('display-' + id);
+  const isOpen = drop.classList.contains('open');
+  // Закрыть другой
+  ['checkin','checkout'].forEach(oid => {
+    document.getElementById('drop-'+oid).classList.remove('open');
+    document.getElementById('display-'+oid).classList.remove('open');
+  });
+  if(!isOpen){
+    renderCalendar(id);
+    drop.classList.add('open');
+    disp.classList.add('open');
+  }
+}
+
+function changeMonth(id, delta){
+  const s = state[id];
+  const now = new Date();
+  let y = s.year || now.getFullYear();
+  let m = s.month !== null ? s.month : now.getMonth();
+  m += delta;
+  if(m < 0){ m = 11; y--; }
+  if(m > 11){ m = 0; y++; }
+  s.year = y; s.month = m;
+  renderCalendar(id);
+}
+
+// ── Инициализация из GET-параметров ──────────────────────────────
+function initFromValue(id, isoVal){
+  if(!isoVal) return;
+  try {
+    const d = new Date(isoVal);
+    if(isNaN(d)) return;
+    state[id].year  = d.getFullYear();
+    state[id].month = d.getMonth();
+    state[id].day   = d.getDate();
+    state[id].hour  = d.getHours();
+    updateDisplay(id);
+  } catch(e){}
+}
+
+initFromValue('checkin',  '{{ check_in }}');
+initFromValue('checkout', '{{ check_out }}');
+
+// Инициализируем календари текущим месяцем
+const now = new Date();
+['checkin','checkout'].forEach(id => {
+  if(state[id].year === null){
+    state[id].year = now.getFullYear();
+    state[id].month = now.getMonth();
+  }
+});
+</script>
+{% endblock %}
