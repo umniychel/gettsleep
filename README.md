@@ -17,10 +17,11 @@ pip install -r requirements.txt
 ### 2. Инициализация базы данных
 
 ```
+python manage.py makemigrations core bookings rooms cleaning reports guest
 python manage.py migrate
 ```
 
-### 3. Загрузка тестовых данных (необязательно)
+### 3. Загрузка тестовых данных
 
 ```
 python manage.py seed_data
@@ -28,13 +29,7 @@ python manage.py seed_data
 
 Это создаст пользователей, капсулы и тестовые бронирования.
 
-### 4. Создание суперпользователя (если не использовали seed_data)
-
-```
-python manage.py createsuperuser
-```
-
-### 5. Запуск сервера
+### 4. Запуск сервера
 
 ```
 python manage.py runserver
@@ -54,6 +49,7 @@ python manage.py runserver
 | reception2   | reception123 | Администратор ресепшена|
 | maid1        | maid123      | Горничная              |
 | maid2        | maid123      | Горничная              |
+| guest        | guest123     | Тестовый гость         |
 
 ---
 
@@ -84,5 +80,3 @@ gettsleep/
 │   └── reports/
 └── static/                 # Статические файлы (CSS, JS)
 ```
-
-Установите драйвер: `pip install psycopg2-binary`
