@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .models import Capsule, CAPSULE_STATUS_CHOICES, CAPSULE_TYPE_CHOICES
 from apps.core.views import log_action
-from apps.core.decorators import staff_required
+from apps.core.decorators import staff_required, manager_required
 
 
 @staff_required
@@ -11,10 +11,13 @@ def room_list(request):
     status_filter = request.GET.get('status', '')
     if status_filter:
         capsules = capsules.filter(status=status_filter)
+    # Горничная может смотреть капсулы но не управлять
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'manager')
     context = {
         'capsules': capsules,
         'status_choices': CAPSULE_STATUS_CHOICES,
         'current_status': status_filter,
+        'can_manage': role in ('manager', 'admin') or request.user.is_superuser,
         'page': 'rooms',
     }
     return render(request, 'rooms/list.html', context)
@@ -24,11 +27,17 @@ def room_list(request):
 def room_detail(request, pk):
     capsule = get_object_or_404(Capsule, pk=pk)
     recent_bookings = capsule.bookings.select_related('guest').order_by('-created_at')[:10]
-    context = {'capsule': capsule, 'recent_bookings': recent_bookings, 'page': 'rooms'}
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'manager')
+    context = {
+        'capsule': capsule,
+        'recent_bookings': recent_bookings,
+        'can_manage': role in ('manager', 'admin') or request.user.is_superuser,
+        'page': 'rooms',
+    }
     return render(request, 'rooms/detail.html', context)
 
 
-@staff_required
+@manager_required
 def room_create(request):
     if request.method == 'POST':
         capsule = Capsule(
@@ -46,7 +55,7 @@ def room_create(request):
     return render(request, 'rooms/form.html', context)
 
 
-@staff_required
+@manager_required
 def room_edit(request, pk):
     capsule = get_object_or_404(Capsule, pk=pk)
     if request.method == 'POST':
@@ -66,6 +75,10 @@ def room_edit(request, pk):
 @staff_required
 def room_status_change(request, pk):
     if request.method == 'POST':
+        role = getattr(getattr(request.user, 'profile', None), 'role', 'manager')
+        if role == 'maid':
+            messages.error(request, 'Горничные не могут менять статус капсул.')
+            return redirect('room_list')
         capsule = get_object_or_404(Capsule, pk=pk)
         new_status = request.POST.get('status')
         if new_status in dict(CAPSULE_STATUS_CHOICES):

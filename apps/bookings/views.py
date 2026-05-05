@@ -1,12 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.utils import timezone
 from django.db.models import Q
 from .models import Booking, Guest, BOOKING_STATUS_CHOICES, SOURCE_CHOICES, PAYMENT_METHOD_CHOICES
 from apps.rooms.models import Capsule
 from apps.cleaning.models import CleaningTask
 from apps.core.views import log_action
-from apps.core.decorators import staff_required
+from apps.core.decorators import staff_required, manager_or_admin_required
 import datetime
 
 
@@ -34,7 +33,7 @@ def booking_list(request):
     return render(request, 'bookings/list.html', context)
 
 
-@staff_required
+@manager_or_admin_required
 def booking_create(request):
     if request.method == 'POST':
         guest_id = request.POST.get('guest_id')
@@ -57,10 +56,8 @@ def booking_create(request):
         check_out = datetime.datetime.fromisoformat(request.POST['check_out'])
 
         booking = Booking(
-            guest=guest,
-            capsule=capsule,
-            check_in=check_in,
-            check_out=check_out,
+            guest=guest, capsule=capsule,
+            check_in=check_in, check_out=check_out,
             source=request.POST.get('source', 'reception'),
             payment_method=request.POST.get('payment_method', 'cash'),
             has_towel='has_towel' in request.POST,
@@ -71,10 +68,8 @@ def booking_create(request):
         )
         booking.total_amount = booking.calculate_total()
         booking.save()
-
         capsule.status = 'booked'
         capsule.save()
-
         log_action(request, f'Создано бронирование #{booking.pk}', 'Booking', booking.pk)
         messages.success(request, f'Бронирование #{booking.pk} создано.')
         return redirect('booking_detail', pk=booking.pk)
@@ -98,12 +93,10 @@ def booking_detail(request, pk):
     return render(request, 'bookings/detail.html', context)
 
 
-@staff_required
+@manager_or_admin_required
 def booking_checkin(request, pk):
-    if request.method != 'POST':
-        return redirect('booking_detail', pk=pk)
     booking = get_object_or_404(Booking, pk=pk)
-    if booking.status == 'confirmed':
+    if request.method == 'POST' and booking.status == 'confirmed':
         booking.status = 'checked_in'
         booking.is_paid = True
         booking.save()
@@ -114,33 +107,25 @@ def booking_checkin(request, pk):
     return redirect('booking_detail', pk=pk)
 
 
-@staff_required
+@manager_or_admin_required
 def booking_checkout(request, pk):
-    if request.method != 'POST':
-        return redirect('booking_detail', pk=pk)
     booking = get_object_or_404(Booking, pk=pk)
-    if booking.status == 'checked_in':
+    if request.method == 'POST' and booking.status == 'checked_in':
         booking.status = 'checked_out'
         booking.save()
         capsule = booking.capsule
         capsule.status = 'cleaning'
         capsule.save()
-        task = CleaningTask.objects.create(
-            capsule=capsule,
-            cleaning_type='express',
-            priority='high',
-        )
+        task = CleaningTask.objects.create(capsule=capsule, cleaning_type='standard', priority='normal')
         log_action(request, f'Выезд по бронированию #{booking.pk}, создана задача уборки #{task.pk}', 'Booking', booking.pk)
         messages.success(request, f'Выезд оформлен. Создана задача на уборку капсулы {capsule.number}.')
     return redirect('booking_detail', pk=pk)
 
 
-@staff_required
+@manager_or_admin_required
 def booking_cancel(request, pk):
-    if request.method != 'POST':
-        return redirect('booking_detail', pk=pk)
     booking = get_object_or_404(Booking, pk=pk)
-    if booking.status in ('confirmed',):
+    if request.method == 'POST' and booking.status == 'confirmed':
         booking.status = 'cancelled'
         booking.save()
         booking.capsule.status = 'free'

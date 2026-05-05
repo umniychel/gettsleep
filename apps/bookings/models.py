@@ -82,19 +82,35 @@ class Booking(models.Model):
     def __str__(self):
         return f'Бронь #{self.pk} — {self.guest} — Капсула {self.capsule.number}'
 
-    def get_duration_hours(self):
+    def get_duration_minutes(self):
+        """Фактическая продолжительность в минутах, минимум 60 (1 час)."""
         delta = self.check_out - self.check_in
-        return max(1, int(delta.total_seconds() / 3600))
+        return max(60, int(delta.total_seconds() / 60))
+
+    def get_duration_hours(self):
+        """Для отображения — дробное кол-во часов."""
+        return round(self.get_duration_minutes() / 60, 2)
+
+    def get_duration_display(self):
+        """Человекочитаемая строка: 'X ч Y мин'."""
+        total_min = self.get_duration_minutes()
+        h = total_min // 60
+        m = total_min % 60
+        if m:
+            return f'{h} ч {m} мин'
+        return f'{h} ч'
 
     def calculate_total(self):
-        hours = self.get_duration_hours()
-        base = self.capsule.price_per_hour * hours
+        """Стоимость = цена/мин × минуты + услуги."""
+        minutes = self.get_duration_minutes()
+        price_per_minute = self.capsule.price_per_hour / 60
+        base = round(price_per_minute * minutes, 2)
         extras = 0
-        if self.has_towel: extras += 150
+        if self.has_towel:    extras += 150
         if self.has_slippers: extras += 100
-        if self.has_hygiene: extras += 200
-        if self.has_meal: extras += 350
-        return base + extras
+        if self.has_hygiene:  extras += 200
+        if self.has_meal:     extras += 350
+        return round(base + extras, 2)
 
     def get_status_color(self):
         colors = {

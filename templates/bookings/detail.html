@@ -28,7 +28,7 @@
     <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">Финансы</span></div>
       <div style="font-size:36px;font-weight:800;color:var(--accent);margin-bottom:8px">{{ booking.total_amount }} ₽</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:14px">{{ booking.get_duration_hours }} ч × {{ booking.capsule.price_per_hour }} ₽/ч</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px">{{ booking.get_duration_display }} × {{ booking.capsule.price_per_hour }} ₽/ч</div>
       {% if booking.has_towel %}<div style="font-size:13px;margin-bottom:4px">✓ Полотенце — 150 ₽</div>{% endif %}
       {% if booking.has_slippers %}<div style="font-size:13px;margin-bottom:4px">✓ Тапочки — 100 ₽</div>{% endif %}
       {% if booking.has_hygiene %}<div style="font-size:13px;margin-bottom:4px">✓ Гигиенический набор — 200 ₽</div>{% endif %}

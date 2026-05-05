@@ -2,7 +2,9 @@
 {% block title %}Капсулы — GettSleep PMS{% endblock %}
 {% block page_title %}Управление капсулами{% endblock %}
 {% block topbar_actions %}
+{% if can_manage %}
 <a href="/rooms/create/" class="btn btn-primary btn-sm">+ Добавить капсулу</a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -28,12 +30,15 @@
   <div style="font-size:13px;color:var(--text2);margin-bottom:4px">{{ c.get_capsule_type_display }} · {{ c.floor }} эт.</div>
   <div style="font-size:13px;font-weight:600;margin-bottom:12px">{{ c.price_per_hour }} ₽/ч</div>
 
-  <div style="display:flex;gap:6px;flex-wrap:wrap">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
     <a href="/rooms/{{ c.pk }}/" class="btn btn-secondary btn-sm">Подробнее</a>
+    {% if can_manage %}
     <a href="/rooms/{{ c.pk }}/edit/" class="btn btn-secondary btn-sm">Изм.</a>
+    {% endif %}
   </div>
 
-  <form method="post" action="/rooms/{{ c.pk }}/status/" style="margin-top:8px;display:flex;gap:6px">
+  {% if can_manage %}
+  <form method="post" action="/rooms/{{ c.pk }}/status/" style="display:flex;gap:6px">
     {% csrf_token %}
     <select name="status" style="font-size:12px;padding:5px 8px;flex:1">
       {% for val, label in status_choices %}
@@ -42,6 +47,7 @@
     </select>
     <button type="submit" class="btn btn-primary btn-sm">OK</button>
   </form>
+  {% endif %}
 </div>
 {% empty %}
 <div style="color:var(--text2);padding:20px">Капсул не найдено</div>
