@@ -8,25 +8,37 @@ from apps.core.views import log_action
 from apps.core.decorators import staff_required
 
 
+def is_maid(user):
+    try:
+        return user.profile.role == 'maid'
+    except Exception:
+        return False
+
+
 @staff_required
 def task_list(request):
-    tasks = CleaningTask.objects.select_related('capsule', 'assigned_to').order_by('priority', 'created_at')
+    tasks = CleaningTask.objects.select_related(
+        'capsule', 'assigned_to'
+    ).order_by('status', '-priority', 'created_at')
+
     status_filter = request.GET.get('status', '')
     if status_filter:
         tasks = tasks.filter(status=status_filter)
 
-    # Горничная видит только свои задачи
+    # Горничная видит ВСЕ задачи (не только свои):
+    # — свободные (assigned_to=None) она может взять
+    # — свои (assigned_to=user) — выполнять
+    # — чужие in_progress — только просматривать
+    # Менеджер/администратор видит всё без фильтров.
+
     user = request.user
-    try:
-        if user.profile.role == 'maid':
-            tasks = tasks.filter(assigned_to=user)
-    except Exception:
-        pass
+    user_is_maid = is_maid(user)
 
     context = {
         'tasks': tasks,
         'status_choices': CLEANING_STATUS_CHOICES,
         'current_status': status_filter,
+        'user_is_maid': user_is_maid,
         'page': 'cleaning',
     }
     return render(request, 'cleaning/list.html', context)
@@ -58,7 +70,6 @@ def task_create(request):
         return redirect('task_list')
 
     capsules = Capsule.objects.filter(is_active=True)
-    # Получаем горничных безопасно: через профиль или через is_staff
     try:
         maids = User.objects.filter(profile__role='maid', is_active=True)
     except Exception:
@@ -75,14 +86,35 @@ def task_create(request):
 
 
 @staff_required
+def task_take(request, pk):
+    """Горничная берёт свободную задачу в работу."""
+    if request.method != 'POST':
+        return redirect('task_list')
+    task = get_object_or_404(CleaningTask, pk=pk)
+    if task.assigned_to is None and task.status == 'pending':
+        task.assigned_to = request.user
+        task.status = 'in_progress'
+        task.started_at = timezone.now()
+        task.save()
+        log_action(request, f'Горничная {request.user.get_full_name()} взяла задачу #{task.pk} (капсула {task.capsule.number})', 'CleaningTask', task.pk)
+        messages.success(request, f'Вы взяли задачу по уборке капсулы {task.capsule.number}.')
+    else:
+        messages.error(request, 'Задача уже назначена или не в статусе ожидания.')
+    return redirect('task_list')
+
+
+@staff_required
 def task_start(request, pk):
+    """Начать уборку (для назначенной горничной или менеджера)."""
     if request.method != 'POST':
         return redirect('task_list')
     task = get_object_or_404(CleaningTask, pk=pk)
     if task.status == 'pending':
         task.status = 'in_progress'
         task.started_at = timezone.now()
-        task.assigned_to = request.user
+        # Если горничная начинает незакреплённую задачу — автоназначаем
+        if task.assigned_to is None:
+            task.assigned_to = request.user
         task.save()
         log_action(request, f'Начата уборка капсулы {task.capsule.number}', 'CleaningTask', task.pk)
         messages.info(request, f'Уборка капсулы {task.capsule.number} начата.')
@@ -91,15 +123,19 @@ def task_start(request, pk):
 
 @staff_required
 def task_complete(request, pk):
+    """Завершить уборку."""
     if request.method != 'POST':
         return redirect('task_list')
     task = get_object_or_404(CleaningTask, pk=pk)
     if task.status in ('pending', 'in_progress'):
+        # Если горничная завершает незакреплённую — фиксируем её
+        if task.assigned_to is None:
+            task.assigned_to = request.user
         task.status = 'done'
         task.completed_at = timezone.now()
         task.save()
         task.capsule.status = 'ready'
         task.capsule.save()
-        log_action(request, f'Завершена уборка капсулы {task.capsule.number}', 'CleaningTask', task.pk)
+        log_action(request, f'Завершена уборка капсулы {task.capsule.number} — {request.user.get_full_name()}', 'CleaningTask', task.pk)
         messages.success(request, f'Уборка капсулы {task.capsule.number} завершена. Статус: готова к заселению.')
     return redirect('task_list')

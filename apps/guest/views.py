@@ -4,27 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.utils import timezone
-from django.utils.timezone import make_aware, is_naive
 from django.db.models import Q
 from .models import GuestUser
 from apps.rooms.models import Capsule
 from apps.bookings.models import Booking, Guest
 import datetime
-import json
-
-
-def parse_aware_dt(s):
-    """Парсит ISO datetime строку и возвращает aware datetime в локальной TZ."""
-    if not s:
-        return None
-    try:
-        dt = datetime.datetime.fromisoformat(s)
-        if is_naive(dt):
-            dt = make_aware(dt)
-        return dt
-    except (ValueError, TypeError):
-        return None
-
 
 
 # ─── Вспомогательный декоратор для гостей ─────────────────────────
@@ -248,13 +232,18 @@ def guest_rooms(request):
 
     now = timezone.now()
 
-    check_in = parse_aware_dt(check_in_str)
-    check_out = parse_aware_dt(check_out_str)
+    check_in = check_out = None
     search_performed = False
-    if check_in and check_out and check_out > check_in:
-        search_performed = True
-    else:
-        check_in = check_out = None
+    if check_in_str and check_out_str:
+        try:
+            check_in  = datetime.datetime.fromisoformat(check_in_str)
+            check_out = datetime.datetime.fromisoformat(check_out_str)
+            if check_out > check_in:
+                search_performed = True
+            else:
+                check_in = check_out = None
+        except ValueError:
+            pass
 
     # Без дат — показываем кто занят прямо сейчас (period = 1 секунда)
     ci = check_in  if search_performed else now
@@ -314,9 +303,10 @@ def guest_booking_create(request, capsule_id):
         check_in_str = request.POST.get('check_in', '')
         check_out_str = request.POST.get('check_out', '')
 
-        check_in  = parse_aware_dt(check_in_str)
-        check_out = parse_aware_dt(check_out_str)
-        if not check_in or not check_out:
+        try:
+            check_in = datetime.datetime.fromisoformat(check_in_str)
+            check_out = datetime.datetime.fromisoformat(check_out_str)
+        except ValueError:
             messages.error(request, 'Неверный формат дат.')
             return redirect('guest_booking_create', capsule_id=capsule_id)
 
@@ -377,25 +367,10 @@ def guest_booking_create(request, capsule_id):
     check_out_default = request.GET.get('check_out') or ''
     # Передаём пустые строки — JS сам установит дефолтные даты
 
-    # Занятые периоды для JS-проверки конфликтов
-    booked = Booking.objects.filter(
-        capsule=capsule,
-        status__in=['confirmed', 'checked_in'],
-    ).values('check_in', 'check_out')
-
-    booked_periods = [
-        {
-            'check_in':  b['check_in'].isoformat(),
-            'check_out': b['check_out'].isoformat(),
-        }
-        for b in booked
-    ]
-
     return render(request, 'guest/booking_form.html', {
         'capsule': capsule,
-        'check_in_default':   check_in_default,
-        'check_out_default':  check_out_default,
-        'booked_periods_json': json.dumps(booked_periods),
+        'check_in_default': check_in_default,
+        'check_out_default': check_out_default,
     })
 
 

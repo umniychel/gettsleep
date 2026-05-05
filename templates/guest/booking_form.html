@@ -201,7 +201,7 @@ input[type="datetime-local"]:focus { border-color: var(--accent); }
 
 {% block extra_js %}
 <script>
-const PPH = parseFloat('{{ capsule.price_per_hour }}') || 0;
+const PPH = {{ capsule.price_per_hour }};
 const PPM = PPH / 60; // цена за минуту
 const EXT = { has_towel: 150, has_slippers: 100, has_hygiene: 200, has_meal: 350 };
 const SVC_MAP = { 'cb-towel':'sl-towel', 'cb-slippers':'sl-slippers', 'cb-hygiene':'sl-hygiene', 'cb-meal':'sl-meal' };
@@ -331,67 +331,5 @@ document.getElementById('bf').addEventListener('submit', function(e) {
   // Запускаем расчёт сразу после установки значений
   calc();
 })();
-
-// ── Проверка занятости капсулы (данные с сервера) ────────────────
-const BOOKED_PERIODS = {{ booked_periods_json|safe }};
-
-function isConflict(ciVal, coVal) {
-  if (!ciVal || !coVal) return false;
-  const ci = new Date(ciVal).getTime();
-  const co = new Date(coVal).getTime();
-  for (const p of BOOKED_PERIODS) {
-    const pCi = new Date(p.check_in).getTime();
-    const pCo = new Date(p.check_out).getTime();
-    if (ci < pCo && co > pCi) return true;
-  }
-  return false;
-}
-
-// Переопределяем валидацию submit с проверкой конфликта
-document.getElementById('bf').removeEventListener('submit', document.getElementById('bf')._submitHandler);
-document.getElementById('bf').addEventListener('submit', function(e) {
-  const ciV = document.getElementById('ci').value;
-  const coV = document.getElementById('co').value;
-  if (!ciV || !coV) {
-    e.preventDefault();
-    alert('Пожалуйста, выберите даты заезда и выезда.');
-    return;
-  }
-  if (new Date(coV) <= new Date(ciV)) {
-    e.preventDefault();
-    alert('Дата выезда должна быть позже даты заезда.');
-    return;
-  }
-  if (isConflict(ciV, coV)) {
-    e.preventDefault();
-    const msg = document.getElementById('date-msg');
-    msg.textContent = '⛔ Это время уже занято. Выберите другой период.';
-    msg.style.display = 'block';
-    msg.style.background = 'rgba(239,68,68,.1)';
-    msg.style.borderColor = 'rgba(239,68,68,.3)';
-    msg.style.color = '#f87171';
-  }
-});
-
-// Показываем предупреждение при изменении дат
-function checkConflictLive() {
-  const ciV = document.getElementById('ci').value;
-  const coV = document.getElementById('co').value;
-  const msg = document.getElementById('date-msg');
-  if (ciV && coV && isConflict(ciV, coV)) {
-    msg.textContent = '⛔ Это время уже занято. Выберите другой период.';
-    msg.style.display = 'block';
-    msg.style.background = 'rgba(239,68,68,.1)';
-    msg.style.borderColor = 'rgba(239,68,68,.3)';
-    msg.style.color = '#f87171';
-  } else if (msg.textContent.startsWith('⛔')) {
-    msg.style.display = 'none';
-  }
-}
-['ci','co'].forEach(id => {
-  document.getElementById(id).addEventListener('change', checkConflictLive);
-  document.getElementById(id).addEventListener('input',  checkConflictLive);
-});
-
 </script>
 {% endblock %}
